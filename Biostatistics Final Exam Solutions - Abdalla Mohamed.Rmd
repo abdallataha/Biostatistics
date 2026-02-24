@@ -1,0 +1,70 @@
+---
+title: "Biostatistics Final Exam"
+author: "Abdalla Mohamed (Matriculation no. 834120)"
+date: "2026-02-24"
+output: html_document
+---
+
+2) 
+a. Download the SPSS data file KiGGS03_06.sav from Moodle and import it into R. [2 points] 
+
+```{r}
+# Reading the data using foreign library
+df <- foreign::read.spss("Raw_Data/KiGGS03_06.sav", to.data.frame = TRUE)
+```
+
+2)
+b. Create a new dataframe in R named kiggs_xyz (where you should replace xyz with your name) which contains the following variables (and only these): E070M (mother smoking), E070V (father smoking), E072 (mother smoking in pregnancy), E074 (mother smoking while breastfeeding), sex (sex), age2 (age), schichtz (social class), e065z (total sleep per day), and HbA1c (glycohemoglobin; long-term blood glucose marker). [4 points] 
+
+```{r}
+# Creation of a new dataframe in R named kiggs_xyz
+kiggs_Abdalla <- df[, c("E070M", "E070V", "E072", "E074", "sex", "age2", "schichtz" , "e065z" , "HbA1c")]
+
+```
+
+2)
+c. Run the formatting steps in the provided Rmd file data_formatting.Rmd, adapted to your dataframe. Save this formatted dataframe as an RData file on your computer, e.g. on your desktop. [1 point] 
+
+```{r}
+# Run the formatting code
+kiggs_Abdalla$E070M    <- factor(kiggs_Abdalla$E070M, labels = c("yes, daily", "yes, occasionally", "no"))
+kiggs_Abdalla$E070V    <- factor(kiggs_Abdalla$E070V, labels = c("yes, daily", "yes, occasionally", "no"))
+kiggs_Abdalla$E072     <- factor(kiggs_Abdalla$E072, labels = c("yes, regularly", "yes, from time to time", "no, never"))
+kiggs_Abdalla$E074     <- factor(kiggs_Abdalla$E074, labels = c("yes, regularly", "yes, from time to time", "no, never", "has not breastfed"))
+kiggs_Abdalla$sex      <- factor(kiggs_Abdalla$sex, labels = c("boys", "girls"))
+kiggs_Abdalla$age2     <- factor(kiggs_Abdalla$age2, labels = c("0-1y", "2-3y", "4-5y", "6-7y", "8-9y", "10-11y", "12-13y", "14-15y", "16-17y"))
+kiggs_Abdalla$schichtz <- factor(kiggs_Abdalla$schichtz, labels = c("low social status", "medium social status", "high social status"))
+
+# Saving the formatted file on my desktop clone of the github project
+save(kiggs_Abdalla, file = "Formatted_Data/kiggs_Abdalla.RData")
+
+```
+
+3) Question 3 - Data transformations and data checks [13 points] 
+
+a. In order to avoid measuring smoking with 4 variables, we will combine them in one variable called burdenS. This new variable shall contain the total smoke exposure to which the children were exposed to. Carry out the following steps:
+
+o Check that the variables E070M, E070V, E072, E074 are all factors. If they are not, 
+transform them into factors. [2 points] 
+o Set the value "has not breastfed" of variable E074 to NA for all children. [1 point] 
+o Delete this now empty factor level from the variable. [1 point] 
+o Check whether these two steps worked as intended. [1 point] 
+o Now calculate the new variable burdenS as the sum of the ranks of the four variables E070M, E070V, E072, E074 for each person (i.e. sum of the numerical factor levels). [4 points] 
+
+What is the meaning of this new variable, does a high value mean that the children were exposed to high levels of smoking, or that they were exposed to low levels of smoking? [1 point] 
+
+```{r}
+
+```
+
+3) b. Add this variable burdenS to your dataset kiggs_xyz, and save it in its updated form as an RData file (overwrite the previous file). [2 points] 
+
+```{r}
+
+```
+
+3) c. What could be an alternative way to summarize the four variables into a summary variable? [1 point]
+
+```{r}
+
+```
