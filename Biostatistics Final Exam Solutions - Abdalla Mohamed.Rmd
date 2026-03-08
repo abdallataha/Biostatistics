@@ -123,6 +123,10 @@ kiggs_Abdalla_n$burdenS <- rowSums(sapply(kiggs_Abdalla_n[, c("E070M", "E070V", 
 # We don't need the fourCol_NA, so I will remove it
 kiggs_Abdalla_n <- kiggs_Abdalla_n[-(ncol(kiggs_Abdalla_n))]
 
+# First checking the classes of the variables
+lapply(kiggs_Abdalla_n[,c("HbA1c","burdenS", "age2", "schichtz", "age2")], class)
+
+kiggs_Abdalla_n <- as.numeric(as.character(kiggs_Abdalla_n[,"HbA1c"]))
 ```
 
 4) Question 4 – Linear and logistic regression [25 points]
@@ -134,47 +138,9 @@ a) Think about 3 variables from the KiGGS data set that you think may be related
 ```{r}
 # The 3 variables are: burdenS, age2, schichtz (they aren't dependent, but I think checking all the other assumptions required for linear regression isn't the main goal of this question. So, I will just choose the required 3 variables for now.) 
 
+# Test Correlation here #################
 
-
-
-Remove the following!!
-# Checking the continuity of Y
-str(kiggs_Abdalla$HbA1c)
-
-# Checking the NA values of x and Y
-sum(is.na(df[, c("age2", "bmiB", "schichtz")]))
-sum(is.na(df[, "HbA1c"]))
-
-# Checking the linearity of predictors, it is tricky but I tried
-plot(as.numeric(kiggs_Abdalla$sex), kiggs_Abdalla$HbA1c)
-plot(as.numeric(kiggs_Abdalla$schichtz), kiggs_Abdalla$HbA1c)
-plot(df$bmiB, kiggs_Abdalla$HbA1c)
-
-# Other way to check linearity
-boxplot(kiggs_Abdalla$schichtz, kiggs_Abdalla$HbA1c)
-means <- aggregate(as.numeric(as.character(HbA1c)) ~ schichtz, 
-                   data = kiggs_Abdalla, 
-                   mean, 
-                   na.rm = TRUE)
-colnames(means) <- c("schichtz", "HbA1c")
-boxplot(as.numeric(as.character(HbA1c)) ~ schichtz, data = kiggs_Abdalla)
-lines(x = 1:3, y = means$HbA1c, col = "firebrick", lwd = 2, type = "b", pch = 19)
-
-# Other way to check linearity
-summary(lm(df$HbA1c ~ as.numeric(df$OW)))$coefficients
-summary(lm(df$HbA1c ~ as.factor(df$OW)))$coefficients
-
-# Check collinearity
-cor.test(as.numeric(kiggs_Abdalla$HbA1c), as.numeric(kiggs_Abdalla$sex), use = "complete.obs", method = "spearman")
-
-# Check Normally-distributed residuals
-hist(bmi, prob=TRUE, ylim = c(0, 0.2)) # Histogram
-lines(density(na.omit(bmi)), lwd=1.5, col="firebrick") # Add density line
-qqnorm(scale(bmi)); abline(0,1) # qq-plot
-
-plot(jitter(kiggs_Abdalla$burdenS), kiggs_Abdalla$HbA1c)
-
-RERWITE THIS AFTER CHOOSING THE VARIABLES
+# RERWITE THIS AFTER CHOOSING THE VARIABLES
 # After checking the continuity of the Y (HbA1c), and the (NA)s, I am choosing "age2", "bmiB" and "OW" variables as they match the assumptions of linear regression. This means that they are independent, no multicollinearity, the NA values can be ignored (147, less than 0.8% of the dataset), so no need for deep imputation.
 ```
 
@@ -217,7 +183,6 @@ lapply(kiggs_Ab_imp_com[,c("HbA1c","burdenS", "age2", "schichtz", "age2")], clas
 
 # Now, recalculate burdenS
 kiggs_Ab_imp_com$burdenS <- rowSums(sapply(kiggs_Ab_imp_com[, c("E070M", "E070V", "E072", "E074")], as.numeric))
-
 
 #Running the linear regression model on the 4 created datasets:
 #-------------------------------------------------------------
@@ -359,7 +324,7 @@ round(cbind(Odds_R = OR, Lower_CI = CI[,1], Upper_CI = CI[,2]),3)
 #---------------------------------------------------
 # e065z with (p = 0.370). So it isn't statistically significant.
 
-# Odds Ratio Interpretation: The OR is 0.979, indicating a 2.1% decrease in the odds of high HbA1c per unit increase in e065z. This is not a significant association.
+# OR Interpretation: The OR is 0.979, indicating a 2.1% decrease in the odds of high HbA1c per unit increase in e065z. This is not a significant association.
 
 ```
 
@@ -388,7 +353,7 @@ b) State a reasonable effect size measure. Look at the literature or think for y
 ```{r}
 # The reasonable effect size measure here is the mean difference in HbA1c (%) between the running group and the control group, expressed as an absolute mean difference (e.g. −0.5 percentage points HbA1c) or as a standardized mean difference (Cohen’s d) based on that change.
 
-# Since I have chosen HbA1c as a continuous variable, the natural effect size is the expected difference between group in mean HbA1c, measured in HbA1c percentage points (e.g. 7.5% vs 7.0%).
+# Since I have chosen HbA1c as a continuous variable, the natural effect size is the expected difference between group in mean HbA1c, measured in HbA1c percentage points (e.g. 7.5% vs 7.0%). I would have thought about ANOVA if I have had more than 2 groups.
 
 # For sample size formulas that use standardized effects, this can be converted to a Cohen’s d by dividing the expected mean difference by the assumed common standard deviation of HbA1c. Example: if I expect a −0.5% absolute reduction in HbA1c with a standard deviation of 1.0%, this corresponds to d = 0.5, which means a moderate standardized effect.
 
@@ -403,7 +368,7 @@ c) Choose an appropriate statistical model/test for the sample size calculation,
 ```{r}
 # I choose a two-sample comparison of means between running and control groups, this means a two-sample t‑test (or, more precisely, a linear model for HbA1c with group as main predictor).
 
-# The reason behind my choice is the effect size which is defined as the between‑group mean difference in HbA1c (continuous outcome), the natural corresponding test for a parallel two‑arm trial is a two-sample t‑test for independent means. 
+# The reason behind my choice is the effect size which is defined as the between‑group mean difference in HbA1c (continuous outcome). The natural corresponding test for a parallel two‑arm trial is a two-sample t‑test for independent means. 
 
 ```
 
@@ -423,15 +388,17 @@ pwr::pwr.t.test(d = 0.5, sig.level = 0.05, power = 0.80, type = "two.sample",
 e) Do you think this is a good study, or do you see any major weaknesses in the study design or sample size calculation? [1 point]
 
 ```{r}
-# It is hard to know if this is a good study or not because there are a lot of unknown details, as people who run 3 times a week usually have other healthy habits, they might eat better, sleep deeper, smoke less, or have lower BMI mean. If I just compare "runners" vs. "non-Runners," I won't know if the lower HbA1c is affected from the running or other factors.
+# It is hard to say it is a good study because there are a lot of unknown details, as people who run 3 times a week usually have other healthy habits, they might eat better, sleep deeper, smoke less, or have lower BMI mean. If I just compare "runners" vs. "non-Runners," I won't know if the lower HbA1c is affected from the running or other factors. 
 
-# Also, asking people if they run 3 times per week (Yes/No) is unreliable. From persoanl experience, people tend to over report healthy behaviors because of social desirability. A "Yes" from someone who jogs for 10 minutes is very different from a "Yes" from a marathoner, the pace, the intensity, the habits after and before running are different but the study treats them as the same.
+# Also, asking people if they run 3 times per week (Yes/No) is unreliable. From personal experience, people tend to over report healthy behaviors because of social desirability. A "Yes" from someone who jogs for 10 minutes is very different from a "Yes" from a marathoner, the pace, the intensity, the habits after and before running are different but the study treats them as the same.
+
+# Another problem is the ambiguity of the question itself, If some participants ran 2 times per week, will putting them in "NO" group is a suitable way? Even running 4 times or more per week could be answered "NO", which could lead to misleading results.
 
 # Furthermore, medically, HbA1c measures average blood sugar over the past 2–3 months. If this study doesn't ensure that the "Runners" have been running consistently for at least 12 weeks before the blood draw, the results won't be accurate.
 
-# The calculation of the required sample size says I need 128 people. But, in lifestyle studies, people drop out, stop running, or forget to show up for their blood tests. If I recruit exactly 128 and 10 people leave (which is highly expected even within highly motivated group), the power drops below 80%, and the study won't achieve the aim.
+# The calculation of the required sample size says I need 128 people. But, in lifestyle studies, people drop out, stop running, or forget to show up for their blood tests. If I recruit exactly 128 and 10 people leave (which is highly expected even within highly motivated group), the power drops below 80%, and the study won't achieve the aim. I would recommend recruiting +150 participants if the other issues are solved.
 
-# Finally, the 128 sample size could be highly affected by age and genetic variance. They aren't that big group that could dissolve the differences. So, the desired effect could appear or not, it depends on many other factors.
+# Finally, I am thinking about the effect of age and genetic variances of the 128 participants. The age could be controlled in the beginning of the study but strict population slice, but the genetic variance will stay. I don't know if assuming same genetics is an option or not but I think They aren't that big group that could dissolve the differences. So, the desired effect could appear or not, it depends on many other factors, but may be I went too far in this last point.
 ```
 
 6) Question 6 – Meta analysis [20 points] 
@@ -460,10 +427,19 @@ c) Choose a population of interest. [1 point]
 d) Choose which study design (RCT, prospective cohort study, any study design …) the studies should have that investigated this association. [1 point] 
 
 ```{r}
-# I choose prospective cohort studies that follow adults with type 2 diabetes over time and assess the association between BMI (measured repeatedly) and HbA1c as continuous outcome. 
+# I choose cohort studies that follow adults with diabetes over time and assess the association between BMI (measured repeatedly) and HbA1c as continuous outcome. 
 ```
 
 e) Search and choose 10 studies that have investigated the association according to your criteria. Screen the studies to make sure that they are relevant, and name them in your answer (eg title, author, year, journal, doi). [3 points] 
+
+Answer:
+I started my study with "prospective cohort studies on adult population with type 2 diabetes in Germany" but I couldn't find enough studies that match these specifications so, I widened my search to include all "cohort studies", all "diabetic" and wherever the patients are in the world. Starting with pubmed using this query: "(BMI OR "Body Mass Index") AND (HbA1c OR "Glycated Hemoglobin") AND (diabetes OR "Diabetes Mellitus") AND ("prospective cohort" OR "longitudinal study") AND (regression OR "beta coefficient" OR "standard error")",  with Filters applied: Abstract, Free full text, Full text, Observational Study, English, Humans, Adult: 19-44 years, Adult: 19+ years, Middle Aged: 45-64 years, Middle Aged + Aged: 45+ years, Young Adult: 19-24 years, MEDLINE. The studies I found weren't relevant to my search.
+
+So, I used AI to help me gathering pool of paper after many trials to use pubmed and google scholar. The problem I faced is lack of parameters and the inaccuracy of results. It isn't very good with AI too but I think it has made it easier for trying different study designs to find a suitable one. I tried https://scispace.com/  free version using this prompt: 
+
+"Use PubMed, Scispace Deep Search, and clinicaltrials.gov to find papers and clinical trials related to investigating the association between BMI (as a continuous exposure) and HbA1c (as continuous outcome) in "prospective cohort" specifically. make this investigation on "adults" from both biological genders with "diabetes"." I edited this prompt later and removed "prospective" with no much improvement.
+
+This specific tool automated the designing of pubmed query with each trial and a suitable query for each database, but the results also lacked accuracy and required deep checking.
 
 ```{r}
 # 1. Title: Distinct trajectories of HbA1c in newly diagnosed Type 2 diabetes from the DPV registry using a longitudinal group-based modelling approach
@@ -472,16 +448,12 @@ e) Search and choose 10 studies that have investigated the association according
 # Journal: Diabetic Medicine 
 # DOI: 10.1111/dme.14103 
 
-# DPV Registry Study (Rathmann et al., 2019): This longitudinal study analyzed 6,355 adults with newly diagnosed type 2 diabetes. It utilized group-based modeling to identify HbA1c trajectories over time. The analysis specifically included baseline BMI (as a continuous variable per kg/m2) as a predictor for membership in different HbA1c trajectory groups (e.g., stable good control vs. stable poor control).
-
 #---------------------------------------------
 # 2. Title: HbA1c trajectories over 3 years in people with type 2 diabetes starting second-line glucose-lowering therapy: The prospective global DISCOVER study 
 # Authors: Brenda Bongaerts, Oliver Kuss, Fabrice Bonnet, Hungta Chen, Andrew Cooper, Peter Fenici, Marilia B. Gomes, Niklas Hammar, Linong Ji, Jesús Medina, Antonio Nicolucci, Kamlesh Khunti, Marina V. Shestakova, Hirotaka Watada, and Wolfgang Rathmann
 # Year: 2023 
 # Journal: Diabetes, Obesity and Metabolism 
 # DOI: 10.1111/dom.15050
-
-# DISCOVER Study (Bongaerts et al., 2023): This was a 3-year prospective observational study of individuals with type 2 diabetes starting second-line glucose-lowering therapy. It aimed to identify distinct HbA1c trajectories. Similar to the first study, it assessed how baseline characteristics, including BMI, related to these longitudinal glycemic patterns.
 
 #---------------------------------------------
 # 3. Title: Rates of glycaemic deterioration in a real-world population with type 2 diabetes 
@@ -491,91 +463,145 @@ e) Search and choose 10 studies that have investigated the association according
 # DOI: 10.1007/s00125-017-4519-5
 
 #---------------------------------------------
-# 4. Title: Dynamics of Hemoglobin A1c, Body Mass Index, and Rates of Severe Hypoglycemia in 4434 Adults with Type 1 or Type 2 Diabetes After Initiation of Continuous Glucose Monitoring 
-# Authors: Stefanie Lanzinger, Frank Best, Tanja Bergmann, Markus Laimer, Boris Lipovsky, Thomas Danne, Stefan Zimny, Peter Bramlage, Svenja Meyhöfer, and Reinhard W. Holl 
-# Year: 2022 
-# Journal: Diabetes Technology & Therapeutics 
-# DOI: 10.1089/dia.2022.0063
-
-# Lanzinger et al. (2022): Using the diabetes prospective follow-up registry, this study followed 4,434 adults with type 1 or type 2 diabetes. It examined the dynamics of both HbA1c and BMI as continuous measures before and after the initiation of continuous glucose monitoring (CGM).
-
-#---------------------------------------------
-# 5. Title: Predictors of glycemic control among patients with Type 2 diabetes: A longitudinal study 
-# Authors: Stephen R. Benoit, Regina Fleming, Athena Philis-Tsimikas, and Ming Ji 
-# Year: 2005 
-# Journal: BMC Public Health 
-# DOI: 10.1186/1471-2458-5-36
-
-#---------------------------------------------
-# 6. Title: Factors affecting Hemoglobin A1c in the longitudinal study of the Iranian population using mixed quantile regression 
+# 4. Title: Factors affecting Hemoglobin A1c in the longitudinal study of the Iranian population using mixed quantile regression 
 # Authors: Abbas Bahrampour & Saiedeh Haji-Maghsoudi 
 # Year: 2023 
 # Journal: Scientific Reports 
 # DOI: 10.1038/s41598-023-36481-x 
-# Reason for Matching: This is a longitudinal (prospective) study involving 2,791 adult diabetic patients (both genders). It explicitly investigates the association between BMI (continuous exposure) and HbA1c (continuous outcome) using linear mixed quantile regression models to observe effects over time.
 
 #---------------------------------------------
-# 7. Title: Longitudinal change in HbA1c after insulin initiation in primary care patients with type 2 diabetes: A database analysis in UK and Germany 
-# Authors: Wolfgang Rathmann, Klaus Strassburger, Teresa Tamayo, Karel Kostev 
-# Year: 2012 (Available online 2011) 
-# Journal: Primary Care Diabetes 
-# DOI: 10.1016/j.pcd.2011.10.001
-
-#---------------------------------------------
-# 8. Title: Trends in HbA1c and Body Mass Index Among Individuals with Type 2 Diabetes: Evidence from a US Database 2012–2019
-# Authors: Kristina S. Boye, Maureen J. Lage, Shraddha Shinde, Vivian Thieu, Jay Patrick Bae 
-# Year: 2021 
-# Journal: Diabetes Therapy 
-# DOI: 10.1007/s13300-021-01084-0
-
-#---------------------------------------------
-# 9. Title: A risk score including body mass index, glycated haemoglobin and triglycerides predicts future glycaemic control in people with type 2 diabetes
-# Authors: Dorijn F. L. Hertroijs, Arianne M. J. Elissen, Martijn C. G. J. Brouwers, Nicolaas C. Schaper, Sebastian Köhler, Mirela C. Popa, Stylianos Asteriadis, Steven H. Hendriks, Henk J. Bilo, Dirk Ruwaard 
-# Year: 2017  (Published in journal 2018) 
-# Journal: Diabetes, Obesity and Metabolism 
-# DOI: 10.1111/dom.13148 
-
-#---------------------------------------------
-# 10. Sociodemographic factors associated with HbA1c variability in type 2 diabetes: a prospective exploratory cohort study
+# 5. Sociodemographic factors associated with HbA1c variability in type 2 diabetes: a prospective exploratory cohort study
 # Authors: Emelia Mellergård, Per Johnsson, Frida Eek 
 # Year: 2020 
 # Journal: BMC Endocrine Disorders 
 # DOI: 10.1186/s12902-020-00585-6 
 
 #---------------------------------------------
-# 11. Title: Association of the glycemic background patterns and the diabetes management efficacy in poorly controlled type 2 diabetes 
-# Authors: Ayşe N Erbakan, Müzeyyen Arslan Bahadır, Fatoş N Kaya, Büşra Güleç, Miraç Vural Keskinler, Ümmügülsüm Aktemur Çelik, Özge Faydalıel, Banu Mesçi, Aytekin Oğuz 
-# Year: 2025 
-# Journal: World Journal of Diabetes 
-# DOI: 10.4239/wjd.v16.11.98322 
-
-# Criteria Match: This is a prospective observational study of adults with type 2 diabetes (HbA1c ≥ 10%) that tracked changes in BMI and HbA1c over 12 months.
-
-#---------------------------------------------
-12. Title: Determinants of glycaemic control in a practice setting: the role of weight loss and treatment adherence (The DELTA Study) 
+# 6. Title: Determinants of glycaemic control in a practice setting: the role of weight loss and treatment adherence (The DELTA Study) 
 # Authors: C. McAdam-Marx, B. K. Bellows, S. Unni, J. Mukherjee, G. Wygant, U. Iloeje, J. N. Liberman, X. Ye, F. J. Bloom, D. I. Brixner 
 # Year: 2014 
 # Journal: International Journal of Clinical Practice 
 # DOI: 10.1111/ijcp.12459
 
-# Criteria Match: This cohort study followed 477 adults (both genders) with inadequately controlled T2DM to examine the simultaneous associations between weight loss (BMI change) and HbA1c goal attainment.
-
 #---------------------------------------------
-13. Title: Changes in body mass index, glycosylated hemoglobin A1C, blood pressure, and LDL-cholesterol among type 2 diabetes patients in Malaysia: A population-based longitudinal study
+# 7. Title: Changes in body mass index, glycosylated hemoglobin A1C, blood pressure, and LDL-cholesterol among type 2 diabetes patients in Malaysia: A population-based longitudinal study
 # Authors: Kim Sui Wan, Mastura Ismail, Foong Ming Moy, Feisul Idzwan Mustapha, Noran Naqiah Hairi 
 # Year: 2021 
 # Journal: Journal of Diabetes 
 # DOI: 10.1111/1753-0407.13206
 
+#---------------------------------------------
+# 8. Title: Differential association of body mass index on glycemic control in type 1 diabetes
+# Authors: Eun Young Lee, Yong-ho Lee, Sang-Man Jin, Hae Kyung Yang, Chang Hee Jung, Cheol-Young Park, Jae Hyoung Cho, Woo Je Lee, Byung-Wan Lee, Jae Hyeon Kim
+# Year: 2016
+# Journal: Diabetes/Metabolism Research and Reviews
+# DOI: 10.1002/dmrr.2815
 
+#---------------------------------------------
+# 9. Title: Associations between decreases in adiposity and reductions in HbA1c and insulin use in the Look AHEAD cohort 
+# Authors: Rebecca Palmer, Rebecca H.Neiberg, Kristen M.Beavers, Steven E. Kahn, Denise K.Houston, Lynne Wagenknecht, Karen C.Johnson, Henry J.Pownall, Mark A. Espeland
+# Year: 2025
+# Journal: Obesity (Silver Spring)
+# DOI: 10.1002/oby.24242
 
+#---------------------------------------------
+# 10. Title: Assessing related factors to fasting blood sugar and glycosylated hemoglobin in patients with type 2 diabetes simultaneously by a multivariate longitudinal marginal model
+# Authors: Samaneh Hosseinzadeh, Zahra Khatirnamani, Enayatollah Bakhshi, Alireza Heidari, Arash Naghipour 
+# Year: 2022 
+# Journal: Scientific Reports
+# DOI: 10.1038/s41598-022-19241-1 
 ```
 
-f) Now perform a meta-analysis for computing a pooled effect. Report all the steps in the preparation (create a data frame with the study info and results, transform the results if necessary, choose fixed/fixed effect model), the pooled effect and its 95% confidence interval, and compute and show a nicely formatted forest plot of the results. [12 points]
+f) Now perform a meta-analysis for computing a pooled effect. Report all the steps in the preparation (create a data frame with the study info and results, transform the results if necessary, choose a fixed or random effect model), the pooled effect and its 95% confidence interval, and compute and show a nicely formatted forest plot of the results. [12 points]
+
+Answer:
+
+Some studies has OR instead of the beta coeffecient so, I have no other solution except a try of conversion first to complete the required 10 studies. Others categorized BMI or HbA1c, so some calculations are needed before insertion in the metafor code. So, evaluation of studies quality and relevancy were mentioned before each study below using AI "Gemini":
+
+The 1st study Overall Quality: Large sample size (n=6355), longitudinal design, and use of a high-quality multicentre registry (DPV). HbA1c values were standardized to reduce laboratory variation. But its relevancy to the meta analysis isn't high as it uses Group-Based Trajectory Modeling (GBTM). This technique identifies "clusters" of people. Instead of saying "HbA1c goes up by X," they say "This person belongs to the 'Stable, Poor, Control' group.
+
+round(log(1.05), 4)
+round((log(1.07) - log(1.03)) / 3.92, 4)
+
+---------------------------------------------
+The 2nd study Overall Quality: It features a global sample size (n=9295) across 37 countries, providing high external validity. Also, its relevancy to the meta analysis isn't high as it uses Latent Class Growth Modelling (LCGM). It groups people into "trajectories." and uses Multinomial Logistic Regression and reported OR.
+round(log(1.04), 4)
+round((log(1.10) - log(0.99)) / 3.92, 4)
+
+---------------------------------------------
+The 3rd study Overall Quality: Large sample size (n > 5,000), long follow-up duration (median 9.4 years), and robust adjustment for time-dependent confounders including medication changes and glucocorticoid use. The study specifically highlights that only the highest BMI category showed a statistically significant independent association with a higher rate of glycaemic deterioration in the multivariate model.
+round((0.47 - 0.06) / 3.92, 4)
+
+---------------------------------------------
+The 4th study Overall Quality: The study features a large, well-defined cohort (N=2791) with a long follow-up duration (up to 13 years), providing good statistical power. The use of mixed-effects modeling appropriately accounts for the longitudinal nature of the data (repeated measures). It is included here with Caution. While the study meets all primary inclusion criteria, it utilizes Linear Mixed Quantile Regression (LQMM) rather than a standard mean-based regression. For a standard meta-analysis, the beta at the 50th quantile (median) is typically used as the best representative of the central tendency when mean effects are not reported.
+
+---------------------------------------------
+The 5th study Overall Quality: this study does not provide a beta coefficient for BMI as a continuous variable. The researchers treated BMI as a categorical variable (Normal, Overweight, Obese) in their Analysis of Variance (MANOVA). They used ANOVA-based models rather than linear regression with BMI as a continuous scale. They report the Mean Difference between specific categories.
+
+I use the Mean Difference between the Obese and Normal groups as the effect size (yi): 0.34
+# And To find the SE from the 95% CI (−0.04, 0.71)
+(0.71 - (-0.04)) / 3.92 = 0.75/3.92= 0.191 #SE
+
+---------------------------------------------
+The 6th study Overall Quality: It uses a low sample size (N=477) compared to others and employs Structural Equation Modeling (SEM), which allows for the simultaneous assessment of complex, interrelated variables like weight loss, medication adherence, and glycemic control. It introduce OR instead of beta coefficient.
+the beta (slope) for the association between baseline BMI and HbA1c level is 0.
+(log(1.03) - log(0.97)) / 3.92 # SE
+
+---------------------------------------------
+The 7th study Overall Quality: The study is of high quality for a population-based longitudinal analysis. With over 18,000 patients, it has high statistical power. It utilizes the National Diabetes Registry, covering all public health clinics in a Malaysian state, which is comparable to national averages. It tracks individual changes by merging annual clinical audit datasets. While the study reports the mean changes for both BMI and HbA1c over the follow-up period, it does not explicitly report a regression coefficient or a direct correlation specifically for the association between the change in BMI and the change in HbA1c in a way that provides a single effect size for that relationship. So to calculate the required values for the meta-analysis, I extracted the mean and standard deviation (SD) for the total study population (n = 18341) at baseline and study exit from the longitudinal audit data presented in Table 2.
+
+yi: 8.04 - 7.88 = 0.16
+SEi: sqrt((2.03^2 / 18315) + (2.15^2 / 18315))= 0.0219
+
+---------------------------------------------
+The 8th study Overall Quality: Small sample size (N=719) for a Type 1 Diabetes study; with multi-centre design; using 18-month average HbA1c (which reduces biological noise compared to a single measurement). The study relied only on baseline BMI. Without longitudinal BMI data, it cannot confirm if changes in weight caused the changes in HbA1c.
+I calculated the Pooled beta (yi) Then, calculate the pooled standard error as the square root of the reciprocal of the sum of the weights (Using AI assistance).
+
+---------------------------------------------
+The 9th study Overall Quality: It utilizes data from a well-characterized, large-scale clinical trial cohort (Look AHEAD) with long-term (8-year) follow-up. The authors used generalized linear mixed models adjusted for baseline levels and repeated measurements, providing a stable estimate of the association over time.
+
+Effect size (beta): -0.13 (representing the mean change in HbA1c 1% for every 5% reduction in BMI) and to make it to 1% of BMI:
+(-0.13/5 = -0.026)
+(0.16 - 0.11) / (2 * 1.96) = 0.0128/5 = 0.0025 # Calculated Standard Error (SE) Derived from the 95% CI
+
+---------------------------------------------
+The 10th study Overall Quality: Although, the meta-analysis specifically requires BMI as a continuous variable, this study records and analyzes "Weight at first visit (kg)". While the authors mention in their discussion that no significant relationship was observed between "body weight (body mass index)" and HbA1c, the actual data extracted and modeled was body weight in kilograms, not the BMI ratio (kg/m^2).
+
 
 ```{r}
+library(metafor)
+
+# Create data frame based on selected studies
+meta_data <- data.frame(
+  study = c("Rathmann et al.", "Bongaerts et al.", "Donnelly et al.", "Bahrampour et al.", "Mellergård et al.", "McAdam-Marx et al.", "Wan et al.", "Lee et al.", "Palmer et al.", "Hosseinzadeh et al."),
+  year = c(2019, 2023, 2018, 2023, 2020, 2014, 2021, 2016, 2025, 2022),
+  # Effect size (Beta)
+  yi = c(0.0488, 0.0392, 0.26, 0.0233, 0.34, 0, 0.16, 0.052, -0.026, 0.13), 
+  # Standard Error
+  sei = c(0.0097, 0.0269, 0.1046, 0.0062, 0.191, 0.0153, 0.0219, 0.037, 0.0025, 0.08) 
+)
+
+# Sampling variance (vi) calculation
+meta_data$vi <- meta_data$sei^2
+
+# Fitting random-effects model
+res <- rma(yi, vi, data = meta_data, method = "REML")
+summary(res)
+
+# Forest plot:
+forest(res, slab = paste(meta_data$study, meta_data$year, sep = ", "), 
+       xlab = "Change in HbA1c per unit BMI", 
+       main = "Association between BMI and HbA1c")
 
 ```
-g) Name 2 weaknesses of this meta-analysis. Do you think this could still be representative of a real meta-analysis on the topic? [2 point] 
+g) Name 2 weaknesses of this meta-analysis. Do you think this could still be representative of a real meta-analysis on the topic? [2 point]
+
+```{r}
+# 1. The major problem I am facing is mixing mean differences from categorical studies with beta coefficients from continuous variables studies in the same meta-analysis. This has introduced the possibility of higher bias. For better statistical approach, I think only using studies that report the linear regression slope (beta) to ensure the units (change per 1 kg/m^2) are identical across the forest plot, but this wasn't available in 10 studies.
+
+# 2. A problem I noticed in longitudinal studies is the difficulty of maintaining the followup period or the units of the variables across the selected studies. In some studies, it is 18 months, and in other studies, it is more than 3 years. In biological lifestyle variables, the continuity could improve the results with long term implications. 
+
+# Generally, I won't recommend taking the approach I used except in extreme cases, like exams XD
+```
 
 Hint: in the creation of the necessary dataset for the analysis, you can take the datasets provided in the metafor package as reference how the dataset should be formatted. If you have problems with dataset formatting, you could still solve the question by hand, i.e. compute the pooled effect by hand, and draw the forest plot by hand (and insert a picture in your output report file) to get some of the available points.
